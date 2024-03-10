@@ -1,43 +1,46 @@
-use std::net::SocketAddr;
-use trust_dns_resolver::config::{ NameServerConfig, Protocol, ResolverConfig, ResolverOpts };
-use trust_dns_resolver::Resolver;
+use hickory_resolver::proto::rr::RecordType;
+use hickory_resolver::Resolver;
+use hickory_resolver::config::*;
 
-fn check_dns_records(domain: &str) {
-    let custom_resolver_ip: SocketAddr = "8.8.8.8:53".parse().expect("Invalid IP address format");
+fn dnslookup(domain: &str) {
+    let record_types = vec![
+        RecordType::A,
+        RecordType::AAAA,
+        RecordType::CNAME,
+        RecordType::MX,
+        RecordType::NS,
+        RecordType::PTR,
+        RecordType::SOA,
+        RecordType::SRV,
+        RecordType::TXT,
+        RecordType::CAA,
+        RecordType::DNSKEY,
+    ];
 
-    let name_server: NameServerConfig = NameServerConfig {
-        socket_addr: custom_resolver_ip,
-        protocol: Protocol::Udp,
-        tls_dns_name: None,
-        trust_nx_responses: true,
-    };
+    let resolver = Resolver::new(ResolverConfig::default(), ResolverOpts::default()).unwrap();
 
-    let resolver_config: ResolverConfig = ResolverConfig::from_parts(
-        None,
-        vec![],
-        vec![name_server]
-    );
-    let resolver_opts: ResolverOpts = ResolverOpts::default();
-    let resolver: Resolver = Resolver::new(resolver_config, resolver_opts).expect(
-        "Failed to create resolver"
-    );
+    for record_type in record_types {
+        let result: Result<
+            hickory_resolver::lookup::Lookup,
+            hickory_resolver::error::ResolveError
+        > = resolver.lookup(domain, record_type);
 
-    let response = resolver.lookup_ip(domain);
-    
-    match response {
-        Ok(ip_addresses) => {
-            println!("{:?}", ip_addresses);
-            for ip in ip_addresses.iter() {
-                println!("A record: {}", ip);
+        match result {
+            Ok(lookup) => {
+                for record in lookup.record_iter() {
+                    println!("{}", record);
+                }
             }
-        }
-        Err(e) => {
-            println!("Error: {}", e);
+            Err(_e) => {
+                //println!("Error: {:?}", e);
+                println!("{} NODATA", record_type.to_string());
+            }
         }
     }
 }
 
 fn main() {
     let domain: &str = "stenstromen.se";
-    check_dns_records(domain);
+    //look_up(domain);
+    dnslookup(domain);
 }
