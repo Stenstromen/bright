@@ -1,5 +1,5 @@
-use async_graphql::SimpleObject;
 use std::sync::Arc;
+use async_graphql::SimpleObject;
 
 #[derive(SimpleObject)]
 pub struct DnsRecord {
