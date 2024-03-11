@@ -123,19 +123,6 @@ dependencies = [
 ]
 
 [[package]]
-name = "async-graphql-warp"
-version = "7.0.2"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "9fbd05ff161d6abed02f8e994763a9356ae939177f4056d464e767c9b14e86fd"
-dependencies = [
- "async-graphql",
- "futures-util",
- "http 0.2.12",
- "serde_json",
- "warp",
-]
-
-[[package]]
 name = "async-stream"
 version = "0.3.5"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -222,7 +209,6 @@ version = "1.0.0"
 dependencies = [
  "anyhow",
  "async-graphql",
- "async-graphql-warp",
  "hickory-resolver",
  "serde",
  "serde_json",

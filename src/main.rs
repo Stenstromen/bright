@@ -1,67 +1,41 @@
-use anyhow::Error;
+mod types;
+use types::{ DnsRecord, DnsRecords, CheckCAA, DomainCheck, QueryRoot };
+
+use std::convert::Infallible;
+use std::sync::Arc;
+
+use anyhow::{ Error, Result };
+use async_graphql::{ Result as GqlResult, Object, Request, Response, Schema };
+use hickory_resolver::config::*;
 use hickory_resolver::proto::rr::RecordType;
 use hickory_resolver::Resolver;
-use hickory_resolver::config::*;
-use async_graphql::{ Object, Schema, SimpleObject };
-use std::convert::Infallible;
-use warp::{ http::Response as HttpResponse, Filter };
-use async_graphql::{ Request, Response, Result as GqlResult, Context };
-use warp::Reply;
 use tokio::task;
-use anyhow::Result;
+use warp::{ Filter, http::Response as HttpResponse, Reply };
 
-#[derive(SimpleObject)]
-struct DnsRecord {
-    name: String,
-    ttl: String,
-    record_type: String,
-    data: String,
-}
+#[Object]
+impl DomainCheck {
+    async fn dns_records(&self) -> GqlResult<Vec<DnsRecord>> {
+        let domain = self.domain.clone();
+        let dns_result = task
+            ::spawn_blocking(move || { dns_records(&domain) }).await
+            .map_err(|e| async_graphql::Error::new(e.to_string()))?
+            .map_err(|e: Error| async_graphql::Error::new(e.to_string()))?;
 
-#[derive(SimpleObject)]
-struct DnsRecords {
-    dns_records: Vec<DnsRecord>,
-}
-#[derive(SimpleObject)]
-struct CheckCAA {
-    has_policy: bool,
-    has_policy_reporting: bool,
-}
+        Ok(dns_result.dns_records)
+    }
 
-#[derive(SimpleObject)]
-struct DomainCheckResult {
-    dns_records: Vec<DnsRecord>,
-    check_caa: CheckCAA,
+    async fn check_caa(&self) -> GqlResult<CheckCAA> {
+        Ok(CheckCAA {
+            has_policy: true,
+            has_policy_reporting: false,
+        })
+    }
 }
-#[derive(Default)]
-struct QueryRoot;
 
 #[Object]
 impl QueryRoot {
-    #[graphql(name = "domainCheck")]
-    async fn domain_check(
-        &self,
-        ctx: &Context<'_>,
-        domain: String
-    ) -> GqlResult<DomainCheckResult> {
-        let dns_result = task
-            ::spawn_blocking(move || dns_records(&domain)).await
-            .map_err(|e| async_graphql::Error::new(e.to_string()))?
-            .map_err(|e: Error| async_graphql::Error::new(e.to_string()));
-
-        let dns_records = dns_result?.dns_records;
-
-        let check_caa = CheckCAA {
-            has_policy: true,
-            has_policy_reporting: false,
-        };
-
-        let result = DomainCheckResult {
-            dns_records,
-            check_caa,
-        };
-
-        Ok(result)
+    async fn domain_checks(&self, domain: String) -> GqlResult<DomainCheck> {
+        Ok(DomainCheck { domain: Arc::new(domain) })
     }
 }
 
@@ -101,21 +75,21 @@ fn dns_records(domain: &str) -> Result<DnsRecords> {
             continue;
         }
 
-        check_and_add_record(&resolver, domain, *record_type, &mut records);
+        check_and_add_record(&resolver, domain, *record_type, &mut records).unwrap();
     }
 
     let www_domain = format!("www.{}", domain);
-    check_and_add_record(&resolver, &www_domain, RecordType::A, &mut records);
-    check_and_add_record(&resolver, &www_domain, RecordType::AAAA, &mut records);
+    check_and_add_record(&resolver, &www_domain, RecordType::A, &mut records).unwrap();
+    check_and_add_record(&resolver, &www_domain, RecordType::AAAA, &mut records).unwrap();
 
     for subdomain in srv_subdomains {
         let fqdn = format!("{}.{}", subdomain, domain);
-        check_and_add_record(&resolver, &fqdn, RecordType::SRV, &mut records);
+        check_and_add_record(&resolver, &fqdn, RecordType::SRV, &mut records).unwrap();
     }
 
     for subdomain in txt_subdomains {
         let fqdn = format!("{}.{}", subdomain, domain);
-        check_and_add_record(&resolver, &fqdn, RecordType::TXT, &mut records);
+        check_and_add_record(&resolver, &fqdn, RecordType::TXT, &mut records).unwrap();
     }
 
     Ok(records)
