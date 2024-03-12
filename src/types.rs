@@ -1,5 +1,5 @@
 use std::sync::Arc;
-use async_graphql::SimpleObject;
+use async_graphql::{ SimpleObject, Schema, EmptyMutation, EmptySubscription };
 
 #[derive(SimpleObject)]
 pub struct DnsRecord {
@@ -31,3 +31,5 @@ pub struct DomainCheckResult {
 }
 #[derive(Default)]
 pub struct QueryRoot;
+
+pub type BrightSchema = Schema<QueryRoot, EmptyMutation, EmptySubscription>;
