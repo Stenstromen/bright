@@ -22,7 +22,13 @@ impl DomainCheck {
     }
 
     async fn caa(&self) -> GqlResult<CheckCAA> {
-        check_caa().map_err(|e: Error| GqlError::new(e.to_string()))
+        let domain: Arc<String> = self.domain.clone();
+        let caa_result: CheckCAA = task
+            ::spawn_blocking(move || { check_caa(&domain) }).await
+            .map_err(|e: JoinError| GqlError::new(e.to_string()))?
+            .map_err(|e: Error| GqlError::new(e.to_string()))?;
+
+        Ok(caa_result)
     }
 }
 

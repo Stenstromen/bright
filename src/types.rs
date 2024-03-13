@@ -13,10 +13,19 @@ pub struct DnsRecord {
 pub struct DnsRecords {
     pub dns_records: Vec<DnsRecord>,
 }
+
+#[derive(SimpleObject)]
+pub struct CAARecords {
+    pub name: String,
+    pub caa_type: String,
+    pub data: String,
+}
+
 #[derive(SimpleObject)]
 pub struct CheckCAA {
-    pub has_policy: bool,
-    pub has_policy_reporting: bool,
+    pub record_exists: bool,
+    pub reporting_enabled: bool,
+    pub records: Vec<CAARecords>,
 }
 
 #[derive(Default)]
