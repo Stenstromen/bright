@@ -1,5 +1,5 @@
-use crate::types::{ DnsRecord, DnsRecords, CheckCAA, DomainCheck, QueryRoot, BrightSchema };
-use crate::dns::{ check_caa, dns_records };
+use crate::types::{ DnsRecord, DnsRecords, CheckCAA, DomainCheck, QueryRoot, BrightSchema, NSRecord };
+use crate::dns::{ check_caa, check_ns, dns_records };
 
 use std::sync::Arc;
 use std::convert::Infallible;
@@ -29,6 +29,16 @@ impl DomainCheck {
             .map_err(|e: Error| GqlError::new(e.to_string()))?;
 
         Ok(caa_result)
+    }
+
+    async fn ns(&self) -> GqlResult<NSRecord> {
+        let domain: Arc<String> = self.domain.clone();
+        let ns_result: NSRecord = task
+            ::spawn_blocking(move || { check_ns(&domain) }).await
+            .map_err(|e: JoinError| GqlError::new(e.to_string()))?
+            .map_err(|e: Error| GqlError::new(e.to_string()))?;
+
+        Ok(ns_result)
     }
 }
 

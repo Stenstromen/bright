@@ -27,10 +27,29 @@ pub struct CheckCAA {
     pub reporting_enabled: bool,
     pub records: Vec<CAARecords>,
 }
-
 #[derive(Default)]
 pub struct DomainCheck {
     pub domain: Arc<String>,
+}
+#[derive(SimpleObject)]
+pub struct NSARecords {
+    pub nsdomain: String,
+    pub operational: bool,
+    pub ipv4available: bool,
+    pub ipv6available: bool,
+    pub ipv4_adresses: Vec<String>,
+    pub ipv6_adresses: Vec<String>,
+}
+
+#[derive(SimpleObject)]
+pub struct NSRecord {
+    pub name: String,
+    pub records: Vec<NSARecords>,
+}
+
+#[derive(SimpleObject)]
+pub struct NSRecords {
+    pub ns_records: Vec<NSRecord>,
 }
 
 #[derive(SimpleObject)]
