@@ -55,10 +55,23 @@ pub struct NSAddresses {
 }
 
 #[derive(SimpleObject)]
+pub struct SOARecord {
+    pub primary_ns: String,
+    pub contact: String,
+    pub serial: String,
+    pub refresh: String,
+    pub retry: String,
+    pub expire: String,
+    pub cache_ttl: String,
+    pub soa_ttl: String,
+}
+
+#[derive(SimpleObject)]
 pub struct NSRecord {
     pub name: String,
     pub records: Vec<NSARecords>,
     pub nsaddresses: Vec<NSAddresses>,
+    pub soa: SOARecord,
 }
 
 #[derive(SimpleObject)]

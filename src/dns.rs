@@ -6,6 +6,7 @@ use crate::types::{
     NSARecords,
     NSAddresses,
     NSRecord,
+    SOARecord,
 };
 
 use std::error::Error as stdError;
@@ -161,11 +162,22 @@ pub fn check_ns(domain: &str) -> Result<NSRecord, Error> {
     let resolver: Resolver = Resolver::new(ResolverConfig::quad9(), ResolverOpts::default())?;
     let result: stdResult<Lookup, ResolveError> = resolver.lookup(domain, RecordType::NS);
     let soa: stdResult<Lookup, ResolveError> = resolver.lookup(domain, RecordType::SOA);
+    let soa_record: SOARecord = SOARecord {
+        primary_ns: String::new(),
+        contact: String::new(),
+        serial: String::new(),
+        refresh: String::new(),
+        retry: String::new(),
+        expire: String::new(),
+        cache_ttl: String::new(),
+        soa_ttl: String::new(),
+    };
 
     let mut ns_records: NSRecord = NSRecord {
         name: domain.to_string(),
         records: Vec::new(),
         nsaddresses: Vec::new(),
+        soa: soa_record,
     };
 
     let mut soa_domain: String = "".to_string();
@@ -178,6 +190,17 @@ pub fn check_ns(domain: &str) -> Result<NSRecord, Error> {
                 let soadomain: String = parts.get(4).unwrap_or(&"").to_string();
 
                 soa_domain = soadomain.clone();
+
+                ns_records.soa = SOARecord {
+                    primary_ns: parts.get(4).unwrap_or(&"").to_string(),
+                    contact: parts.get(5).unwrap_or(&"").to_string(),
+                    serial: parts.get(6).unwrap_or(&"").to_string(),
+                    refresh: parts.get(7).unwrap_or(&"").to_string(),
+                    retry: parts.get(8).unwrap_or(&"").to_string(),
+                    expire: parts.get(9).unwrap_or(&"").to_string(),
+                    cache_ttl: parts.get(1).unwrap_or(&"").to_string(),
+                    soa_ttl: parts.get(10).unwrap_or(&"").to_string(),
+                };
             }
         }
         Err(_e) => {}
