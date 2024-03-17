@@ -16,7 +16,7 @@ use hickory_resolver::lookup::Lookup;
 use hickory_resolver::error::ResolveError;
 use hickory_resolver::proto::rr::RecordType;
 use hickory_resolver::config::{ NameServerConfig, Protocol, ResolverConfig, ResolverOpts };
-use std::net::{ IpAddr, Ipv4Addr, SocketAddr, TcpStream };
+use std::net::{ IpAddr, Ipv4Addr, Ipv6Addr, SocketAddr, TcpStream };
 
 pub fn dns_records(domain: &str) -> Result<DnsRecords> {
     let base_record_types: Vec<RecordType> = vec![
@@ -231,20 +231,11 @@ pub fn check_ns(domain: &str) -> Result<NSRecord, Error> {
 
                             let ipv4address: String = address.to_string();
 
-                            let ipv4addressvector = ipv4address.split('.').collect::<Vec<&str>>();
-
                             ipv4available = true;
 
                             ipv4_addresses.push(address.to_string());
 
-                            let my_ip: IpAddr = IpAddr::V4(
-                                Ipv4Addr::new(
-                                    ipv4addressvector[0].parse().unwrap(),
-                                    ipv4addressvector[1].parse().unwrap(),
-                                    ipv4addressvector[2].parse().unwrap(),
-                                    ipv4addressvector[3].parse().unwrap()
-                                )
-                            );
+                            let my_ip: IpAddr = IpAddr::V4(address.parse().unwrap());
 
                             let mut udp: bool = false;
                             let tcp: bool;
@@ -364,6 +355,67 @@ pub fn check_ns(domain: &str) -> Result<NSRecord, Error> {
 
                             ipv6available = true;
 
+                            let my_ip: IpAddr = IpAddr::V6(address.parse().unwrap());
+
+                            let mut udp: bool = false;
+                            let tcp: bool;
+                            let mut operational: bool = false;
+                            let authoritative: bool;
+                            let recursive: bool;
+                            let mut referral_ns_soa: bool = false;
+
+                            match TcpStream::connect((my_ip, 53)) {
+                                Ok(_) => {
+                                    tcp = true;
+                                }
+                                Err(_e) => {
+                                    tcp = false;
+                                }
+                            }
+
+                            let name_server = NameServerConfig {
+                                socket_addr: SocketAddr::new(my_ip, 53),
+                                protocol: Protocol::Udp,
+                                tls_dns_name: None,
+                                bind_addr: None,
+                                trust_negative_responses: true,
+                            };
+
+                            let mut config = ResolverConfig::new();
+                            config.add_name_server(name_server);
+
+                            let hickory_resolver = Resolver::new(config, ResolverOpts::default())?;
+
+                            let result: stdResult<Lookup, ResolveError> = hickory_resolver.lookup(
+                                domain,
+                                RecordType::A
+                            );
+
+                            match result {
+                                Ok(_lookup) => {
+                                    authoritative = true;
+                                    udp = true;
+                                    operational = true;
+                                }
+                                Err(_e) => {
+                                    authoritative = false;
+                                }
+                            }
+
+                            let recursive_result: stdResult<
+                                Lookup,
+                                ResolveError
+                            > = hickory_resolver.lookup("internetstiftelsen.se", RecordType::A);
+
+                            match recursive_result {
+                                Ok(_lookup) => {
+                                    recursive = true;
+                                }
+                                Err(_e) => {
+                                    recursive = false;
+                                }
+                            }
+
                             ipv6_addresses.push(address.to_string());
 
                             let ipv6address: String = address.to_string();
@@ -442,15 +494,19 @@ pub fn check_ns(domain: &str) -> Result<NSRecord, Error> {
                                 .unwrap_or(&"")
                                 .to_string();
 
+                            if ptr == soa_domain {
+                                referral_ns_soa = true;
+                            }
+
                             nsa_addresses.push(NSAddresses {
                                 ip: ipv6address,
                                 ptr: ptr,
-                                referral_ns_soa: false,
-                                operational: false,
-                                authoritative: false,
-                                recursive: false,
-                                udp: false,
-                                tcp: false,
+                                referral_ns_soa: referral_ns_soa,
+                                operational: operational,
+                                authoritative: authoritative,
+                                recursive: recursive,
+                                udp: udp,
+                                tcp: tcp,
                             });
                         }
                     }
