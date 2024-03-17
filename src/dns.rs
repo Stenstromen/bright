@@ -16,7 +16,7 @@ use hickory_resolver::lookup::Lookup;
 use hickory_resolver::error::ResolveError;
 use hickory_resolver::proto::rr::RecordType;
 use hickory_resolver::config::{ NameServerConfig, Protocol, ResolverConfig, ResolverOpts };
-use std::net::{ IpAddr, Ipv4Addr, SocketAddr };
+use std::net::{ IpAddr, Ipv4Addr, SocketAddr, TcpStream };
 
 pub fn dns_records(domain: &str) -> Result<DnsRecords> {
     let base_record_types: Vec<RecordType> = vec![
@@ -237,42 +237,87 @@ pub fn check_ns(domain: &str) -> Result<NSRecord, Error> {
 
                             ipv4_addresses.push(address.to_string());
 
-                            let auth_ns: NameServerConfig = NameServerConfig {
-                                socket_addr: SocketAddr::new(
-                                    IpAddr::V4(
-                                        Ipv4Addr::new(
-                                            ipv4addressvector[0].parse().unwrap(),
-                                            ipv4addressvector[1].parse().unwrap(),
-                                            ipv4addressvector[2].parse().unwrap(),
-                                            ipv4addressvector[3].parse().unwrap()
-                                        )
-                                    ),
-                                    53
-                                ),
+                            let my_ip: IpAddr = IpAddr::V4(
+                                Ipv4Addr::new(
+                                    ipv4addressvector[0].parse().unwrap(),
+                                    ipv4addressvector[1].parse().unwrap(),
+                                    ipv4addressvector[2].parse().unwrap(),
+                                    ipv4addressvector[3].parse().unwrap()
+                                )
+                            );
+
+                            let mut udp: bool = false;
+                            let tcp: bool;
+                            let mut operational: bool = false;
+                            let authoritative: bool;
+                            let recursive: bool;
+
+                            match TcpStream::connect((my_ip, 53)) {
+                                Ok(_) => {
+                                    tcp = true;
+                                }
+                                Err(_e) => {
+                                    tcp = false;
+                                }
+                            }
+
+                            let name_server = NameServerConfig {
+                                socket_addr: SocketAddr::new(my_ip, 53),
                                 protocol: Protocol::Udp,
-                                bind_addr: None,
                                 tls_dns_name: None,
-                                trust_negative_responses: false,
+                                bind_addr: None,
+                                trust_negative_responses: true,
                             };
 
-                            /* let newresolver = Resolver::new(
-                                ResolverConfig::from_parts(
-                                    vec![auth_ns),
-                                ResolverOpts::default()
-                            ); */
+                            let mut config = ResolverConfig::new();
+                            config.add_name_server(name_server);
 
-                            let in_addr_arpa: String = address
+                            let hickory_resolver = Resolver::new(config, ResolverOpts::default())?;
+
+                            let result: stdResult<Lookup, ResolveError> = hickory_resolver.lookup(
+                                domain,
+                                RecordType::A
+                            );
+
+                            match result {
+                                Ok(_lookup) => {
+                                    authoritative = true;
+                                    udp = true;
+                                    operational = true;
+                                }
+                                Err(_e) => {
+                                    authoritative = false;
+                                }
+                            }
+
+                            let recursive_result: stdResult<
+                                Lookup,
+                                ResolveError
+                            > = hickory_resolver.lookup("internetstiftelsen.se", RecordType::A);
+
+                            match recursive_result {
+                                Ok(_lookup) => {
+                                    recursive = true;
+                                }
+                                Err(_e) => {
+                                    recursive = false;
+                                }
+                            }
+
+                            let mut in_addr_arpa: String = address
                                 .split('.') // Split the string into an iterator based on the '.' delimiter
                                 .rev() // Reverse the order of the elements in the iterator
                                 .collect::<Vec<&str>>() // Collect the elements back into a vector
                                 .join(".");
 
+                            in_addr_arpa = format!("{}.in-addr.arpa", in_addr_arpa);
+
+                            let mut ptr: String = "".to_string();
+
                             let ptr_lookup: stdResult<Lookup, ResolveError> = resolver.lookup(
                                 &in_addr_arpa,
                                 RecordType::PTR
                             );
-
-                            let mut ptr: String = "".to_string();
 
                             match ptr_lookup {
                                 Ok(lookup) => {
@@ -298,11 +343,11 @@ pub fn check_ns(domain: &str) -> Result<NSRecord, Error> {
                                 ip: ipv4address,
                                 ptr: ptr,
                                 referral_ns_soa: referral_ns_soa,
-                                operational: false,
-                                authoritative: false,
-                                recursive: false,
-                                udp: false,
-                                tcp: false,
+                                operational: operational,
+                                authoritative: authoritative,
+                                recursive: recursive,
+                                udp: udp,
+                                tcp: tcp,
                             });
                         }
                     }
