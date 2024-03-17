@@ -10,13 +10,13 @@ use crate::types::{
 
 use std::error::Error as stdError;
 use std::prelude::v1::Result as stdResult;
+use std::net::{ IpAddr, SocketAddr, TcpStream };
 use anyhow::{ Result, Error };
 use hickory_resolver::Resolver;
 use hickory_resolver::lookup::Lookup;
 use hickory_resolver::error::ResolveError;
 use hickory_resolver::proto::rr::RecordType;
 use hickory_resolver::config::{ NameServerConfig, Protocol, ResolverConfig, ResolverOpts };
-use std::net::{ IpAddr, Ipv4Addr, Ipv6Addr, SocketAddr, TcpStream };
 
 pub fn dns_records(domain: &str) -> Result<DnsRecords> {
     let base_record_types: Vec<RecordType> = vec![
@@ -252,7 +252,7 @@ pub fn check_ns(domain: &str) -> Result<NSRecord, Error> {
                                 }
                             }
 
-                            let name_server = NameServerConfig {
+                            let name_server: NameServerConfig = NameServerConfig {
                                 socket_addr: SocketAddr::new(my_ip, 53),
                                 protocol: Protocol::Udp,
                                 tls_dns_name: None,
@@ -260,17 +260,19 @@ pub fn check_ns(domain: &str) -> Result<NSRecord, Error> {
                                 trust_negative_responses: true,
                             };
 
-                            let mut config = ResolverConfig::new();
+                            let mut config: ResolverConfig = ResolverConfig::new();
                             config.add_name_server(name_server);
 
-                            let hickory_resolver = Resolver::new(config, ResolverOpts::default())?;
+                            let hickory_resolver: Resolver = Resolver::new(
+                                config,
+                                ResolverOpts::default()
+                            )?;
 
-                            let result: stdResult<Lookup, ResolveError> = hickory_resolver.lookup(
-                                domain,
-                                RecordType::A
-                            );
-
-                            match result {
+                            match
+                                stdResult::<Lookup, ResolveError>::from(
+                                    hickory_resolver.lookup(domain, RecordType::A)
+                                )
+                            {
                                 Ok(_lookup) => {
                                     authoritative = true;
                                     udp = true;
@@ -281,12 +283,11 @@ pub fn check_ns(domain: &str) -> Result<NSRecord, Error> {
                                 }
                             }
 
-                            let recursive_result: stdResult<
-                                Lookup,
-                                ResolveError
-                            > = hickory_resolver.lookup("internetstiftelsen.se", RecordType::A);
-
-                            match recursive_result {
+                            match
+                                stdResult::<Lookup, ResolveError>::from(
+                                    hickory_resolver.lookup("internetstiftelsen.se", RecordType::A)
+                                )
+                            {
                                 Ok(_lookup) => {
                                     recursive = true;
                                 }
@@ -296,21 +297,20 @@ pub fn check_ns(domain: &str) -> Result<NSRecord, Error> {
                             }
 
                             let mut in_addr_arpa: String = address
-                                .split('.') // Split the string into an iterator based on the '.' delimiter
-                                .rev() // Reverse the order of the elements in the iterator
-                                .collect::<Vec<&str>>() // Collect the elements back into a vector
+                                .split('.')
+                                .rev()
+                                .collect::<Vec<&str>>()
                                 .join(".");
 
                             in_addr_arpa = format!("{}.in-addr.arpa", in_addr_arpa);
 
                             let mut ptr: String = "".to_string();
 
-                            let ptr_lookup: stdResult<Lookup, ResolveError> = resolver.lookup(
-                                &in_addr_arpa,
-                                RecordType::PTR
-                            );
-
-                            match ptr_lookup {
+                            match
+                                stdResult::<Lookup, ResolveError>::from(
+                                    resolver.lookup(&in_addr_arpa, RecordType::PTR)
+                                )
+                            {
                                 Ok(lookup) => {
                                     for record in lookup.record_iter() {
                                         let record_str: String = record.to_string();
