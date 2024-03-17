@@ -67,6 +67,11 @@ pub struct SOARecord {
 }
 
 #[derive(SimpleObject)]
+pub struct DNSSEC {
+    pub dnssec_enabed: bool,
+}
+
+#[derive(SimpleObject)]
 pub struct NSRecord {
     pub name: String,
     pub records: Vec<NSARecords>,

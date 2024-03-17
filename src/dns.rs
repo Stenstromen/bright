@@ -7,6 +7,7 @@ use crate::types::{
     NSAddresses,
     NSRecord,
     SOARecord,
+    DNSSEC,
 };
 
 use std::error::Error as stdError;
@@ -18,6 +19,31 @@ use hickory_resolver::lookup::Lookup;
 use hickory_resolver::error::ResolveError;
 use hickory_resolver::proto::rr::RecordType;
 use hickory_resolver::config::{ NameServerConfig, Protocol, ResolverConfig, ResolverOpts };
+
+use trust_dns_resolver::lookup::Lookup as TDRLookup;
+use trust_dns_resolver::error::ResolveError as TDRResolveError;
+use trust_dns_resolver::proto::rr::RecordType as TDRRecordType;
+use trust_dns_resolver::Resolver as TDRResolver;
+use trust_dns_resolver::config::{
+    ResolverConfig as TDRResolverConfig,
+    ResolverOpts as TDRResolverOpts,
+};
+
+pub fn check_dnssec(domain: &str) -> Result<DNSSEC> {
+    let mut opts: TDRResolverOpts = TDRResolverOpts::default();
+    opts.validate = true;
+
+    let resolver: TDRResolver = TDRResolver::new(TDRResolverConfig::quad9(), opts).unwrap();
+
+    match
+        stdResult::<TDRLookup, TDRResolveError>::from(
+            resolver.lookup(domain, TDRRecordType::DNSKEY)
+        )
+    {
+        Ok(_lookup) => { Ok(DNSSEC { dnssec_enabed: true }) }
+        Err(_e) => { Ok(DNSSEC { dnssec_enabed: false }) }
+    }
+}
 
 pub fn dns_records(domain: &str) -> Result<DnsRecords> {
     let base_record_types: Vec<RecordType> = vec![
@@ -42,7 +68,7 @@ pub fn dns_records(domain: &str) -> Result<DnsRecords> {
         "_xmpp-server._tcp"
     ];
 
-    let txt_subdomains = vec!["_dmarc", "_domainkey", "_mta-sts", "_smtp._tls"];
+    let txt_subdomains: Vec<&str> = vec!["_dmarc", "_domainkey", "_mta-sts", "_smtp._tls"];
 
     let mut records: DnsRecords = DnsRecords { dns_records: Vec::new() };
 
@@ -64,7 +90,7 @@ pub fn dns_records(domain: &str) -> Result<DnsRecords> {
     }
 
     for subdomain in txt_subdomains {
-        let fqdn = format!("{}.{}", subdomain, domain);
+        let fqdn: String = format!("{}.{}", subdomain, domain);
         check_and_add_record(&fqdn, RecordType::TXT, &mut records).unwrap();
     }
 
@@ -154,7 +180,7 @@ pub fn check_caa(domain: &str) -> Result<CheckCAA, Error> {
             }
             Ok(records)
         }
-        Err(_e) => Err(Error::msg("No CAA records found")),
+        Err(_e) => Ok(records),
     }
 }
 
@@ -396,7 +422,7 @@ pub fn check_ns(domain: &str) -> Result<NSRecord, Error> {
                                 }
                             }
 
-                            let name_server = NameServerConfig {
+                            let name_server: NameServerConfig = NameServerConfig {
                                 socket_addr: SocketAddr::new(my_ip, 53),
                                 protocol: Protocol::Udp,
                                 tls_dns_name: None,
@@ -404,10 +430,10 @@ pub fn check_ns(domain: &str) -> Result<NSRecord, Error> {
                                 trust_negative_responses: true,
                             };
 
-                            let mut config = ResolverConfig::new();
+                            let mut config: ResolverConfig = ResolverConfig::new();
                             config.add_name_server(name_server);
 
-                            let hickory_resolver = Resolver::new(config, ResolverOpts::default())?;
+                            let hickory_resolver: Resolver = Resolver::new(config, ResolverOpts::default())?;
 
                             let result: stdResult<Lookup, ResolveError> = hickory_resolver.lookup(
                                 domain,
