@@ -39,12 +39,26 @@ pub struct NSARecords {
     pub ipv6available: bool,
     pub ipv4_adresses: Vec<String>,
     pub ipv6_adresses: Vec<String>,
+    pub referral_ns_soa: bool,
+}
+
+#[derive(SimpleObject, Debug)]
+pub struct NSAddresses {
+    pub ip: String,
+    pub ptr: String,
+    pub referral_ns_soa: bool,
+    pub operational: bool,
+    pub authoritative: bool,
+    pub recursive: bool,
+    pub udp: bool,
+    pub tcp: bool,
 }
 
 #[derive(SimpleObject)]
 pub struct NSRecord {
     pub name: String,
     pub records: Vec<NSARecords>,
+    pub nsaddresses: Vec<NSAddresses>,
 }
 
 #[derive(SimpleObject)]

@@ -3,19 +3,20 @@ use crate::types::{
     CheckCAA,
     DnsRecord,
     DnsRecords,
-    /* IPv4, IPv6, */ NSARecords,
+    NSARecords,
+    NSAddresses,
     NSRecord,
 };
 
 use std::error::Error as stdError;
 use std::prelude::v1::Result as stdResult;
 use anyhow::{ Result, Error };
-use hickory_resolver::proto::op;
 use hickory_resolver::Resolver;
 use hickory_resolver::lookup::Lookup;
 use hickory_resolver::error::ResolveError;
-use hickory_resolver::proto::rr::{ domain, RecordType };
-use hickory_resolver::config::{ ResolverConfig, ResolverOpts };
+use hickory_resolver::proto::rr::RecordType;
+use hickory_resolver::config::{ NameServerConfig, Protocol, ResolverConfig, ResolverOpts };
+use std::net::{ IpAddr, Ipv4Addr, SocketAddr };
 
 pub fn dns_records(domain: &str) -> Result<DnsRecords> {
     let base_record_types: Vec<RecordType> = vec![
@@ -157,14 +158,30 @@ pub fn check_caa(domain: &str) -> Result<CheckCAA, Error> {
 }
 
 pub fn check_ns(domain: &str) -> Result<NSRecord, Error> {
-    // TODO: Add bool to show which NS is authoritative
     let resolver: Resolver = Resolver::new(ResolverConfig::quad9(), ResolverOpts::default())?;
     let result: stdResult<Lookup, ResolveError> = resolver.lookup(domain, RecordType::NS);
+    let soa: stdResult<Lookup, ResolveError> = resolver.lookup(domain, RecordType::SOA);
 
     let mut ns_records: NSRecord = NSRecord {
         name: domain.to_string(),
         records: Vec::new(),
+        nsaddresses: Vec::new(),
     };
+
+    let mut soa_domain: String = "".to_string();
+
+    match soa {
+        Ok(lookup) => {
+            for record in lookup.record_iter() {
+                let record_str: String = record.to_string();
+                let parts: Vec<&str> = record_str.split_whitespace().collect();
+                let soadomain: String = parts.get(4).unwrap_or(&"").to_string();
+
+                soa_domain = soadomain.clone();
+            }
+        }
+        Err(_e) => {}
+    }
 
     match result {
         Ok(lookup) => {
@@ -178,11 +195,18 @@ pub fn check_ns(domain: &str) -> Result<NSRecord, Error> {
                     .unwrap_or(&[""])
                     .join(" ");
 
+                let mut referral_ns_soa: bool = false;
                 let mut operational: bool = false;
                 let mut ipv4available: bool = false;
                 let mut ipv6available: bool = false;
                 let mut ipv4_addresses: Vec<String> = Vec::new();
                 let mut ipv6_addresses: Vec<String> = Vec::new();
+
+                let mut nsa_addresses: Vec<NSAddresses> = Vec::new();
+
+                if nsdomain == soa_domain {
+                    referral_ns_soa = true;
+                }
 
                 let ipv4_result: stdResult<Lookup, ResolveError> = resolver.lookup(
                     &data,
@@ -205,9 +229,81 @@ pub fn check_ns(domain: &str) -> Result<NSRecord, Error> {
 
                             let address: String = parts.get(4).unwrap_or(&"").to_string();
 
+                            let ipv4address: String = address.to_string();
+
+                            let ipv4addressvector = ipv4address.split('.').collect::<Vec<&str>>();
+
                             ipv4available = true;
 
                             ipv4_addresses.push(address.to_string());
+
+                            let auth_ns: NameServerConfig = NameServerConfig {
+                                socket_addr: SocketAddr::new(
+                                    IpAddr::V4(
+                                        Ipv4Addr::new(
+                                            ipv4addressvector[0].parse().unwrap(),
+                                            ipv4addressvector[1].parse().unwrap(),
+                                            ipv4addressvector[2].parse().unwrap(),
+                                            ipv4addressvector[3].parse().unwrap()
+                                        )
+                                    ),
+                                    53
+                                ),
+                                protocol: Protocol::Udp,
+                                bind_addr: None,
+                                tls_dns_name: None,
+                                trust_negative_responses: false,
+                            };
+
+                            /* let newresolver = Resolver::new(
+                                ResolverConfig::from_parts(
+                                    vec![auth_ns),
+                                ResolverOpts::default()
+                            ); */
+
+                            let in_addr_arpa: String = address
+                                .split('.') // Split the string into an iterator based on the '.' delimiter
+                                .rev() // Reverse the order of the elements in the iterator
+                                .collect::<Vec<&str>>() // Collect the elements back into a vector
+                                .join(".");
+
+                            let ptr_lookup: stdResult<Lookup, ResolveError> = resolver.lookup(
+                                &in_addr_arpa,
+                                RecordType::PTR
+                            );
+
+                            let mut ptr: String = "".to_string();
+
+                            match ptr_lookup {
+                                Ok(lookup) => {
+                                    for record in lookup.record_iter() {
+                                        let record_str: String = record.to_string();
+                                        let parts: Vec<&str> = record_str
+                                            .split_whitespace()
+                                            .collect();
+
+                                        ptr = parts.get(4).unwrap_or(&"").to_string();
+                                    }
+                                }
+                                Err(_e) => {}
+                            }
+
+                            let mut referral_ns_soa: bool = false;
+
+                            if ptr == soa_domain {
+                                referral_ns_soa = true;
+                            }
+
+                            nsa_addresses.push(NSAddresses {
+                                ip: ipv4address,
+                                ptr: ptr,
+                                referral_ns_soa: referral_ns_soa,
+                                operational: false,
+                                authoritative: false,
+                                recursive: false,
+                                udp: false,
+                                tcp: false,
+                            });
                         }
                     }
                     Err(_e) => {}
@@ -224,10 +320,99 @@ pub fn check_ns(domain: &str) -> Result<NSRecord, Error> {
                             ipv6available = true;
 
                             ipv6_addresses.push(address.to_string());
+
+                            let ipv6address: String = address.to_string();
+
+                            fn expand_ipv6_address(ipv6: &str) -> Result<String, &'static str> {
+                                let parts: Vec<&str> = ipv6.split("::").collect();
+                                if parts.len() > 2 {
+                                    return Err("Invalid IPv6 address");
+                                }
+
+                                let hextets_before_double_colon: Vec<&str> = parts[0]
+                                    .split(':')
+                                    .collect::<Vec<&str>>();
+                                let hextets_after_double_colon: Vec<&str> = if parts.len() == 2 {
+                                    parts[1].split(':').collect::<Vec<&str>>()
+                                } else {
+                                    vec![]
+                                };
+
+                                let missing_hextets =
+                                    8 -
+                                    hextets_before_double_colon.len() -
+                                    hextets_after_double_colon.len();
+                                let zeros = vec!["0000"; missing_hextets];
+
+                                let combined: Vec<&str> = [
+                                    &hextets_before_double_colon[..],
+                                    &zeros[..],
+                                    &hextets_after_double_colon[..],
+                                ].concat();
+
+                                let expanded: Vec<String> = combined
+                                    .into_iter()
+                                    .map(|part| format!("{:0>4}", part))
+                                    .collect();
+
+                                Ok(expanded.join(":"))
+                            }
+
+                            fn ipv6_to_ptr(ipv6: &str) -> Result<String, &'static str> {
+                                let expanded: String = expand_ipv6_address(ipv6)?;
+
+                                let ptr: String = expanded
+                                    .replace(":", "")
+                                    .chars()
+                                    .rev()
+                                    .enumerate()
+                                    .map(|(i, c)| (
+                                        if i > 0 {
+                                            format!(".{}", c)
+                                        } else {
+                                            c.to_string()
+                                        }
+                                    ))
+                                    .collect::<String>();
+
+                                Ok(format!("{}{}", ptr, ".ip6.arpa"))
+                            }
+
+                            let ipv6_arpa: stdResult<String, &str> = ipv6_to_ptr(&ipv6address);
+
+                            let ptr_lookup: stdResult<Lookup, ResolveError> = resolver.lookup(
+                                &ipv6_arpa.unwrap(),
+                                RecordType::PTR
+                            );
+
+                            let ptr: String = ptr_lookup
+                                .unwrap()
+                                .record_iter()
+                                .next()
+                                .unwrap()
+                                .to_string()
+                                .split_whitespace()
+                                .collect::<Vec<&str>>()
+                                .get(4)
+                                .unwrap_or(&"")
+                                .to_string();
+
+                            nsa_addresses.push(NSAddresses {
+                                ip: ipv6address,
+                                ptr: ptr,
+                                referral_ns_soa: false,
+                                operational: false,
+                                authoritative: false,
+                                recursive: false,
+                                udp: false,
+                                tcp: false,
+                            });
                         }
                     }
                     Err(_e) => {}
                 }
+
+                ns_records.nsaddresses.append(&mut nsa_addresses);
 
                 ns_records.records.push(NSARecords {
                     nsdomain,
@@ -236,8 +421,10 @@ pub fn check_ns(domain: &str) -> Result<NSRecord, Error> {
                     ipv6available: ipv6available,
                     ipv4_adresses: ipv4_addresses,
                     ipv6_adresses: ipv6_addresses,
+                    referral_ns_soa: referral_ns_soa,
                 });
             }
+
             Ok(ns_records)
         }
         Err(_e) => Err(Error::msg("No NS records found")),
