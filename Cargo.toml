@@ -6,6 +6,7 @@ readme = "README.md"
 rust-version = "1.76.0"
 homepage = "https://stenstromen.se"
 repository = "https://github.com/stenstromen/bright"
+description = "DNS, Email and Web standards testing tool"
 categories = ["development-tools::testing", "web-programming::http-client", "network-programming"]
 
 [dependencies]
