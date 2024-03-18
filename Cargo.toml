@@ -2,6 +2,11 @@
 name = "bright"
 version = "1.0.0"
 edition = "2021"
+readme = "README.md"
+rust-version = "1.76.0"
+homepage = "https://stenstromen.se"
+repository = "https://github.com/stenstromen/bright"
+categories = ["development-tools::testing", "web-programming::http-client", "network-programming"]
 
 [dependencies]
 async-graphql = "7.0.2"
@@ -12,3 +17,7 @@ serde_json = "1.0.114"
 tokio = { version = "1.36.0", features = ["full"] } 
 warp = "0.3.6"
 anyhow = "1.0"
+
+[[bin]]
+name = "bright"
+path = "src/main.rs"
