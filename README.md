@@ -14,6 +14,67 @@ It is written in Rust and interfacing is done via GraphQL API.
 - warp
 - anyhow
 
+## API Docs
+
+Endpoint /graphql
+
+```query
+{
+  domainChecks(domain: "example.com") {
+    records {             # Check DNS Records
+      name                # Domain being checked
+      ttl                 # TTL of record
+      recordType          # Type of record
+      data                # Record contents
+    }
+    caa {                 # Check CAA DNS Records
+      recordExists        # Bool if record exists
+      reportingEnabled    # Bool if reporting is enabled
+      records {           # Object[] containing CAA records
+        name              # Domain being checked
+        caaType           # Type of CAA record
+        data              # CAA record contents
+      }
+    }
+    ns {                  # Check DNS Nameserver for domain
+      name                # Domain being checked
+      records {           # Object[] containing NS records
+        nsdomain          # Nameserver being checked FQDN 
+        operational       # If nameserver is responding
+        ipv4Available     # Bool if nameserver has ipv4 addresses available
+        ipv6Available     # Bool if nameserver has ipv6 addresses available
+        ipv4Adresses      # Array[] containing nameserver ipv4 addresses
+        ipv6Adresses      # Array[] containing nameserver ipv6 addresses
+        referralNsSoa     # Bool if nameserver is referred to in SOA
+      }
+      nsaddresses {       # Check ip addresses for nameserver(s)
+        ip                # Ip address of nameserver
+        ptr               # PTR record of nameserver ip address
+        referralNsSoa     # Bool if nameserver is referred to in SOA
+        operational       # Bool if nameserver ip is responding
+        authoritative     # Bool if nameserver ip provides authoritative responses for domain 
+        recursive         # Bool if nameserver ip resolves other domains other than provided domain
+        udp               # Bool if nameserver port 53/udp responds
+        tcp               # Bool is nameserver port 53/tcp responds
+      }
+      soa {               # Check SOA for domain
+        primaryNs         # Primary nameserver in SOA
+        contact           # Contact detail in SOA
+        serial            # SOA serial
+        refresh           # Refresh in seconds
+        retry             # Retry in seconds
+        expire            # Expire in seconds
+        cacheTtl          # Resolution TTL in seconds
+        soaTtl            # SOA TTL in seconds
+      }
+    }
+    dnssec {              # Check DNSSEC status for domain
+      dnssecEnabed        # Bool if DNSSEC is enabled or not
+    }
+  }
+}
+```
+
 ## Development Status
 
 ### Checks and Tests
