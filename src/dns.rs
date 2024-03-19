@@ -40,8 +40,8 @@ pub fn check_dnssec(domain: &str) -> Result<DNSSEC> {
             resolver.lookup(domain, TDRRecordType::DNSKEY)
         )
     {
-        Ok(_lookup) => { Ok(DNSSEC { dnssec_enabed: true }) }
-        Err(_e) => { Ok(DNSSEC { dnssec_enabed: false }) }
+        Ok(_lookup) => { Ok(DNSSEC { dnssec_enabled: true }) }
+        Err(_e) => { Ok(DNSSEC { dnssec_enabled: false }) }
     }
 }
 
@@ -569,8 +569,8 @@ pub fn check_ns(domain: &str) -> Result<NSRecord, Error> {
                     operational: operational,
                     ipv4available: ipv4available,
                     ipv6available: ipv6available,
-                    ipv4_adresses: ipv4_addresses,
-                    ipv6_adresses: ipv6_addresses,
+                    ipv4_addresses,
+                    ipv6_addresses,
                     referral_ns_soa: referral_ns_soa,
                 });
             }

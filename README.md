@@ -2,7 +2,7 @@
 
 ## Introduction
 
-BRIGHT is a DNS, Email and Web standards testing tool.
+BRIGHT is a DNS, Email and Web standards testing tool. All related to a single tested domain.
 It is written in Rust and interfacing is done via GraphQL API.
 
 ## External Crates
@@ -20,7 +20,7 @@ Endpoint /graphql
 
 ```query
 {
-  domainChecks(domain: "example.com") {
+  domainCheck(domain: "example.com") {
     records {             # Check DNS Records
       name                # Domain being checked
       ttl                 # TTL of record
@@ -43,8 +43,8 @@ Endpoint /graphql
         operational       # If nameserver is responding
         ipv4Available     # Bool if nameserver has ipv4 addresses available
         ipv6Available     # Bool if nameserver has ipv6 addresses available
-        ipv4Adresses      # Array[] containing nameserver ipv4 addresses
-        ipv6Adresses      # Array[] containing nameserver ipv6 addresses
+        ipv4Addresses      # Array[] containing nameserver ipv4 addresses
+        ipv6Addresses      # Array[] containing nameserver ipv6 addresses
         referralNsSoa     # Bool if nameserver is referred to in SOA
       }
       nsaddresses {       # Check ip addresses for nameserver(s)
@@ -69,7 +69,7 @@ Endpoint /graphql
       }
     }
     dnssec {              # Check DNSSEC status for domain
-      dnssecEnabed        # Bool if DNSSEC is enabled or not
+      dnssecEnabled        # Bool if DNSSEC is enabled or not
     }
   }
 }

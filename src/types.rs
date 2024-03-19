@@ -37,8 +37,8 @@ pub struct NSARecords {
     pub operational: bool,
     pub ipv4available: bool,
     pub ipv6available: bool,
-    pub ipv4_adresses: Vec<String>,
-    pub ipv6_adresses: Vec<String>,
+    pub ipv4_addresses: Vec<String>,
+    pub ipv6_addresses: Vec<String>,
     pub referral_ns_soa: bool,
 }
 
@@ -68,7 +68,7 @@ pub struct SOARecord {
 
 #[derive(SimpleObject)]
 pub struct DNSSEC {
-    pub dnssec_enabed: bool,
+    pub dnssec_enabled: bool,
 }
 
 #[derive(SimpleObject)]

@@ -63,7 +63,7 @@ impl DomainCheck {
 
 #[Object]
 impl QueryRoot {
-    async fn domain_checks(&self, domain: String) -> GqlResult<DomainCheck> {
+    async fn domain_check(&self, domain: String) -> GqlResult<DomainCheck> {
         Ok(DomainCheck { domain: Arc::new(domain) })
     }
 }
