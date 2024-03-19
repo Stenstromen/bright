@@ -12,6 +12,7 @@ use crate::dns::{ check_caa, check_dnssec, check_ns, dns_records };
 
 use std::sync::Arc;
 use std::convert::Infallible;
+use std::env::var;
 
 use anyhow::{ Error, Result };
 use tokio::task::{ self, JoinError };
@@ -74,6 +75,10 @@ pub async fn graphql_handler(schema: BrightSchema, req: Request) -> Result<impl 
     Ok(
         HttpResponse::builder()
             .header("content-type", "application/json")
+            .header("Access-Control-Allow-Origin", var("CORS_ORIGIN").unwrap_or("*".to_string()))
+            .header("Access-Control-Allow-Methods", "POST, OPTIONS")
+            .header("Access-Control-Allow-Headers", "Content-Type")
+            .status(200)
             .body(serde_json::to_string(&response).unwrap())
             .unwrap()
     )

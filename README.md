@@ -5,6 +5,20 @@
 BRIGHT is a DNS, Email and Web standards testing tool. All related to a single tested domain.
 It is written in Rust and interfacing is done via GraphQL API.
 
+## Usage
+
+Set the `CORS_ORIGIN` env variable to set Allowed Origin, default is `*`
+
+Server listens on `http://localhost:8000`
+
+Readiness and Liveness endpoints available at `/ready` and `/status`
+
+Run with
+
+```bash
+cargo run
+```
+
 ## External Crates
 
 - async-graphql

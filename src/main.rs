@@ -24,5 +24,17 @@ async fn main() {
         .and(warp::body::json())
         .and_then(graphql_handler);
 
-    warp::serve(graphql_route).run(([127, 0, 0, 1], 8000)).await;
+    let liveness_route = warp
+        ::path("status")
+        .map(|| warp::reply::json(&"OK"));
+
+    let readiness_route = warp
+        ::path("ready")
+        .map(|| warp::reply::json(&"OK"));
+
+    let routes = graphql_route
+        .or(liveness_route)
+        .or(readiness_route);
+
+    warp::serve(routes).run(([127, 0, 0, 1], 8000)).await;
 }
