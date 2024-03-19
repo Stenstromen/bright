@@ -57,8 +57,8 @@ Endpoint /graphql
         operational       # If nameserver is responding
         ipv4Available     # Bool if nameserver has ipv4 addresses available
         ipv6Available     # Bool if nameserver has ipv6 addresses available
-        ipv4Addresses      # Array[] containing nameserver ipv4 addresses
-        ipv6Addresses      # Array[] containing nameserver ipv6 addresses
+        ipv4Addresses     # Array[] containing nameserver ipv4 addresses
+        ipv6Addresses     # Array[] containing nameserver ipv6 addresses
         referralNsSoa     # Bool if nameserver is referred to in SOA
       }
       nsaddresses {       # Check ip addresses for nameserver(s)
@@ -83,7 +83,7 @@ Endpoint /graphql
       }
     }
     dnssec {              # Check DNSSEC status for domain
-      dnssecEnabled        # Bool if DNSSEC is enabled or not
+      dnssecEnabled       # Bool if DNSSEC is enabled or not
     }
   }
 }
