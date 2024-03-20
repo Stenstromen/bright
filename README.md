@@ -19,6 +19,33 @@ Run with
 cargo run
 ```
 
+## Docker Image
+
+```bash
+docker run --rm -d \
+-p 8000:8000 \
+ghcr.io/stenstromen/bright:latest
+```
+
+## Example Request
+
+Using cURL and jq:
+
+```bash
+curl --silent \
+  --request POST \
+  --url http://localhost:8000/graphql \
+  --header 'Content-Type: application/json' \
+  --data "$(jq -c -n --arg query '
+{
+  domainCheck(domain: "example.com") {
+    dnssec {
+      dnssecEnabled
+    }
+  }
+}' '{"query":$query}')"|jq
+```
+
 ## External Crates
 
 - async-graphql
@@ -93,7 +120,7 @@ Endpoint /graphql
 
 ### Checks and Tests
 
-#### Domain Name System (DNS)
+#### Domain Name System (DNS) (`v1.0.0`)
 
 - [x] DNS Zone - Nameservers, Nameserver Addresses and SOA
 - [x] DNS Records - A, AAAA, CNAME, MX, NS, PTR, SOA, TXT, CAA, DNSKEY, DS and SSHFP.
