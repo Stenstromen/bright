@@ -9,7 +9,7 @@ It is written in Rust and interfacing is done via GraphQL API.
 
 Set the `CORS_ORIGIN` env variable to set Allowed Origin, default is `*`
 
-Server listens on `http://localhost:8000`
+Server listens on `http://0.0.0.0:8000`
 
 Readiness and Liveness endpoints available at `/ready` and `/status`
 
@@ -17,6 +17,18 @@ Run with
 
 ```bash
 cargo run
+```
+
+## Docker Build
+
+```bash
+docker build -t bright:latest .
+```
+
+## Docker Run
+
+```bash
+docker run --rm -d -p 8000:8000 bright:latest
 ```
 
 ## External Crates
