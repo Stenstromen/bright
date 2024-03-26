@@ -1,5 +1,7 @@
 # BRIGHT - *BRaGIng RigHTs*
 
+![Logo](./bright_logo.webp)
+
 ## Introduction
 
 BRIGHT is a DNS, Email and Web standards testing tool. All related to a single tested domain.
