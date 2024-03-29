@@ -4,11 +4,13 @@ use crate::types::{
     DnsRecord,
     DnsRecords,
     DomainCheck,
+    Email,
     NSRecord,
     QueryRoot,
     DNSSEC,
 };
 use crate::dns::{ check_caa, check_dnssec, check_ns, dns_records };
+use crate::email::check_email;
 
 use std::sync::Arc;
 use std::convert::Infallible;
@@ -59,6 +61,16 @@ impl DomainCheck {
             .map_err(|e: Error| GqlError::new(e.to_string()))?;
 
         Ok(dnssec_result)
+    }
+
+    async fn email(&self) -> GqlResult<Email> {
+        let domain: Arc<String> = self.domain.clone();
+        let email_result: Email = task
+            ::spawn_blocking(move || { check_email(&domain) }).await
+            .map_err(|e: JoinError| GqlError::new(e.to_string()))?
+            .map_err(|e: Error| GqlError::new(e.to_string()))?;
+
+        Ok(email_result)
     }
 }
 

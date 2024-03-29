@@ -79,7 +79,7 @@ pub struct DNSSEC {
     pub dnssec_enabled: bool,
 }
 
-#[doc = "Nameserver information for a domain"] 
+#[doc = "Nameserver information for a domain"]
 #[derive(SimpleObject)]
 pub struct NSRecord {
     pub name: String,
@@ -97,6 +97,21 @@ pub struct NSRecords {
 pub struct DomainCheckResult {
     dns_records: Vec<DnsRecord>,
     check_caa: CheckCAA,
+}
+
+#[derive(SimpleObject)]
+pub struct Mx {
+    pub name: String,
+    pub ipv4: String,
+    pub ipv6: String,
+    pub ptr: String,
+    pub preference: i8,
+    pub operational: bool,
+    pub dnssec: bool,
+}
+#[derive(SimpleObject)]
+pub struct Email {
+    pub mx: Vec<Mx>,
 }
 #[derive(Default)]
 pub struct QueryRoot;

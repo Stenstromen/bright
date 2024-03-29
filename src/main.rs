@@ -1,5 +1,6 @@
 mod types;
 mod dns;
+mod email;
 mod graphql;
 use types::QueryRoot;
 use graphql::graphql_handler;
