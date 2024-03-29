@@ -1,6 +1,7 @@
 use std::sync::Arc;
 use async_graphql::{ SimpleObject, Schema, EmptyMutation, EmptySubscription };
 
+#[doc = "Check DNS Records for a domain"]
 #[derive(SimpleObject)]
 pub struct DnsRecord {
     pub name: String,
@@ -14,6 +15,7 @@ pub struct DnsRecords {
     pub dns_records: Vec<DnsRecord>,
 }
 
+#[doc = "CAA Records for a domain"]
 #[derive(SimpleObject)]
 pub struct CAARecords {
     pub name: String,
@@ -21,6 +23,7 @@ pub struct CAARecords {
     pub data: String,
 }
 
+#[doc = "Check if CAA Records exist and if reporting is enabled for a domain"]
 #[derive(SimpleObject)]
 pub struct CheckCAA {
     pub record_exists: bool,
@@ -31,6 +34,8 @@ pub struct CheckCAA {
 pub struct DomainCheck {
     pub domain: Arc<String>,
 }
+
+#[doc = "Check Nameserver Records for a domain"]
 #[derive(SimpleObject)]
 pub struct NSARecords {
     pub nsdomain: String,
@@ -42,6 +47,7 @@ pub struct NSARecords {
     pub referral_ns_soa: bool,
 }
 
+#[doc = "Check Nameserver IP Addresses and PTR records for a domain"]
 #[derive(SimpleObject, Debug)]
 pub struct NSAddresses {
     pub ip: String,
@@ -54,6 +60,7 @@ pub struct NSAddresses {
     pub tcp: bool,
 }
 
+#[doc = "SOA Record information for a domain"]
 #[derive(SimpleObject)]
 pub struct SOARecord {
     pub primary_ns: String,
@@ -66,11 +73,13 @@ pub struct SOARecord {
     pub soa_ttl: String,
 }
 
+#[doc = "Check if DNSSEC is enabled for a domain"]
 #[derive(SimpleObject)]
 pub struct DNSSEC {
     pub dnssec_enabled: bool,
 }
 
+#[doc = "Nameserver information for a domain"] 
 #[derive(SimpleObject)]
 pub struct NSRecord {
     pub name: String,
