@@ -134,10 +134,10 @@ Endpoint /graphql
 
 #### Email
 
-- [ ] Mail Servers - MX, A, AAAA and PTR records.
-  - If the mail server is reachable and if it supports STARTTLS.
+- [x] Mail Servers - MX, A, AAAA and PTR records.
+  - [] If the mail server is reachable and if it supports STARTTLS.
   - If the mail server has DANE configured.
-  - If the MX records are DNSSEC signed.
+  - [x] If the mail server domain is DNSSEC signed.
 - [ ] SMTP Server TLS
   - What TLS version is supported.
   - What ciphers are supported and their order.

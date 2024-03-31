@@ -94,7 +94,6 @@ pub fn check_email(domain: &str) -> Result<Email> {
                     ipv6: ipv6,
                     ptr: ptr,
                     preference: preference,
-                    operational: true,
                     dnssec: dnssec,
                 };
 

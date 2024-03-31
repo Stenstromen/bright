@@ -106,7 +106,6 @@ pub struct Mx {
     pub ipv6: String,
     pub ptr: String,
     pub preference: i8,
-    pub operational: bool,
     pub dnssec: bool,
 }
 #[derive(SimpleObject)]
