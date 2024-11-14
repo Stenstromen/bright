@@ -1,0 +1,13 @@
+FROM rust:alpine AS builder
+WORKDIR /app
+COPY . .
+RUN apk add --no-cache musl-dev gcc && \
+    rustup target add aarch64-unknown-linux-musl && \
+    CARGO_TARGET_AARCH64_UNKNOWN_LINUX_MUSL_LINKER=gcc cargo build --target aarch64-unknown-linux-musl --release
+
+FROM scratch
+# Copy the statically linked ARM64 binary
+COPY --from=builder /usr/src/bright/target/aarch64-unknown-linux-musl/release/bright /bright
+EXPOSE 8000
+USER 65534:65534
+CMD ["/bright"]
