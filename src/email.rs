@@ -8,7 +8,7 @@ use hickory_resolver::Resolver;
 use hickory_resolver::lookup::Lookup;
 use hickory_resolver::error::ResolveError;
 use hickory_resolver::proto::rr::RecordType;
-use hickory_resolver::config::{ NameServerConfig, Protocol, ResolverConfig, ResolverOpts };
+use hickory_resolver::config::{ ResolverConfig, ResolverOpts };
 use trust_dns_resolver::lookup::Lookup as TDRLookup;
 use trust_dns_resolver::error::ResolveError as TDRResolveError;
 use trust_dns_resolver::proto::rr::RecordType as TDRRecordType;
