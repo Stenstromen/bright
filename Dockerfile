@@ -7,7 +7,8 @@ RUN apt-get update && \
         musl-dev \
         pkg-config \
         wget \
-        make && \
+        make \
+        linux-libc-dev && \
     wget https://www.openssl.org/source/openssl-3.0.12.tar.gz && \
     tar xvf openssl-3.0.12.tar.gz && \
     cd openssl-3.0.12 && \
