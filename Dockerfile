@@ -1,23 +1,24 @@
-FROM alpine:latest AS builder
+FROM rust:bullseye AS builder
 WORKDIR /usr/src/bright
 
-# Install build dependencies
-RUN apk add --no-cache \
-    rust \
-    cargo \
-    musl-dev \
-    gcc \
-    openssl-dev \
-    openssl-libs-static \
-    pkgconfig
+RUN apt-get update && apt-get install -y \
+    musl-tools \
+    pkg-config \
+    libssl-dev \
+    && rm -rf /var/lib/apt/lists/*
+
+RUN rustup target add x86_64-unknown-linux-musl
 
 COPY . .
-RUN OPENSSL_STATIC=1 \
-    OPENSSL_DIR=/usr \
-    cargo build --release
+
+RUN PKG_CONFIG_ALLOW_CROSS=1 \
+    RUSTFLAGS='-C target-feature=+crt-static' \
+    cargo build --target x86_64-unknown-linux-musl --release
+
+RUN ldd target/x86_64-unknown-linux-musl/release/bright || true
 
 FROM scratch
-COPY --from=builder /usr/src/bright/target/release/bright /bright
+COPY --from=builder /usr/src/bright/target/x86_64-unknown-linux-musl/release/bright /bright
 EXPOSE 8000
 USER 65534:65534
 CMD ["/bright"]
