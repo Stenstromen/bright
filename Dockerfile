@@ -1,9 +1,10 @@
-FROM rust:alpine AS builder
-WORKDIR /app
+FROM rust:latest AS builder
+WORKDIR /usr/src/bright
+RUN apt-get update && \
+    apt-get install -y --no-install-recommends musl-tools curl libssl3 && \
+    rustup target add x86_64-unknown-linux-musl
 COPY . .
-RUN apk add --no-cache musl-dev gcc openssl-dev && \
-    rustup target add x86_64-unknown-linux-musl && \
-    CARGO_TARGET_X86_64_UNKNOWN_LINUX_MUSL_LINKER=gcc cargo build --target x86_64-unknown-linux-musl --release
+RUN cargo build --target x86_64-unknown-linux-musl --release
 
 FROM scratch
 COPY --from=builder /usr/src/bright/target/x86_64-unknown-linux-musl/release/bright /bright
