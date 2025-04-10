@@ -10,7 +10,7 @@ description = "DNS, Email and Web standards testing tool"
 categories = ["development-tools::testing", "web-programming::http-client", "network-programming"]
 
 [dependencies]
-async-graphql = "7.0.3"
+async-graphql = "7.0.16"
 hickory-resolver = "0.25.1"
 trust-dns-resolver = { version ="0.23.2", features = ["dnssec-openssl"] }
 serde = { version = "1.0", features = ["derive"] }
